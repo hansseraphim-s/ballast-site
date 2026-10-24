@@ -13,7 +13,7 @@ const SITE = {
   youtubeUrl: '',
   rssUrl: '',
   hostSurname: '',
-  hostLinkedIn: '',
+  hostLinkedIn: 'https://www.linkedin.com/in/hans-seraphim/',
   hostAffiliation: '',    /* e.g. an independence or employer disclosure line */
   newsStaleDays: 14,      /* Soundings hides itself when weekOf is older than this */
   analytics: false        /* set true only after Web Analytics is enabled in the Vercel project; loads /_vercel/insights/script.js */
@@ -80,8 +80,6 @@ if (EPISODES.length === 0) {
   document.getElementById('episodes').hidden = false;
   document.querySelectorAll('li > a[href="#episodes"]').forEach(a => { a.closest('li').hidden = false; });
 }
-/* Hero "Listen" button: appears once episodes exist. */
-document.getElementById('hero-listen').hidden = EPISODES.length === 0;
 document.getElementById('episode-list').innerHTML = EPISODES.map((ep, i) => `
   <article class="ep reveal">
     <div class="no"><small>Episode</small>${String(ep.number).padStart(2,'0')}</div>
@@ -129,46 +127,6 @@ if (!NEWS.items.length || newsStale) {
   document.getElementById('latest-meta').textContent = `${ep.guest} · ${ep.role}, ${ep.company} · ${ep.duration}`;
 })();
 
-/* ===== Tide chart waveform ===== */
-(function tide() {
-  const svg = document.getElementById('tide');
-  const W = 1000, H = 160, N = 120;
-  const ns = 'http://www.w3.org/2000/svg';
-  const el = (t, a) => { const e = document.createElementNS(ns, t); for (const k in a) e.setAttribute(k, a[k]); return e; };
-  const grid = el('g', { class: 'grid' });
-  for (let x = 0; x <= W; x += 100) grid.appendChild(el('line', { x1: x, y1: 0, x2: x, y2: H }));
-  [40, 80, 120].forEach(y => grid.appendChild(el('line', { x1: 0, y1: y, x2: W, y2: y })));
-  svg.appendChild(grid);
-  const fill = el('path', { class: 'fill' }), wave = el('path', { class: 'wave' });
-  svg.appendChild(fill); svg.appendChild(wave);
-  svg.appendChild(el('line', { class: 'loadline', x1: 0, y1: 80, x2: W, y2: 80 }));
-  const lbl = el('text', { class: 'lbl', x: 6, y: 74 }); lbl.textContent = 'LOAD LINE'; svg.appendChild(lbl);
-  const seeds = Array.from({ length: N }, () => Math.random() * 6.28);
-  let t = 0, last = 0, tabVisible = true, heroVisible = true, looping = false;
-  const running = () => tabVisible && heroVisible;
-  function start() { if (!looping && running()) { looping = true; requestAnimationFrame(frame); } }
-  document.addEventListener('visibilitychange', () => { tabVisible = !document.hidden; start(); });
-  /* Pause the loop while the hero is off-screen */
-  if ('IntersectionObserver' in window) {
-    new IntersectionObserver(es => { heroVisible = es[es.length - 1].isIntersecting; start(); }).observe(svg);
-  }
-  function frame(now = 0) {
-    if (!running()) { looping = false; return; }
-    if (now - last < 33) { requestAnimationFrame(frame); return; } /* ~30fps cap */
-    last = now;
-    let d = '';
-    for (let i = 0; i < N; i++) {
-      const x = (i / (N - 1)) * W;
-      const y = 80 + Math.sin(i * .35 + t) * 18 + Math.sin(i * .11 - t * .6 + seeds[i] * .3) * 22 + Math.sin(i * 1.3 + t * 1.7) * 4;
-      d += (i ? 'L' : 'M') + x.toFixed(1) + ' ' + y.toFixed(1);
-    }
-    wave.setAttribute('d', d);
-    fill.setAttribute('d', d + `L${W} ${H}L0 ${H}Z`);
-    if (!reduceMotion) { t += .018; requestAnimationFrame(frame); } else looping = false;
-  }
-  looping = true; frame();
-})();
-
 /* ===== Reveal ===== */
 (function () {
   const els = document.querySelectorAll('.reveal');
@@ -194,15 +152,28 @@ const safeEmail = e => /^[^\s@<>"']+@[^\s@<>"']+\.[^\s@<>"']+$/.test(e) ? e : ''
 const safeScriptUrl = u => /^https:\/\/script\.google\.com\/macros\/s\/[A-Za-z0-9_-]+\/exec$/.test(u) ? u : '';
 const safeId = i => /^[A-Za-z0-9_-]+$/.test(i) ? i : '';
 const CONTACT = safeEmail(SITE.contactEmail);
+const safeAppleUrl = u => /^https:\/\/(podcasts|itunes)\.apple\.com\/[^\s"'<>]+$/i.test(u) ? u : '';
+const safeLinkedInUrl = u => /^https:\/\/www\.linkedin\.com\/in\/[^\s"'<>]+$/i.test(u) ? u : '';
 const safeSpotifyUrl = u => /^https:\/\/open\.spotify\.com\/[^\s"'<>]+$/i.test(u) ? u : '';
 const ENDPOINT = safeScriptUrl(SITE.guestEndpoint);
 const NL_ID = safeId(SITE.newsletterFormId);
-/* Newsletter signup UI (hero form and Subscribe form) shows only when a delivery path exists. */
+/* Newsletter signup UI (Subscribe form) shows only when a delivery path exists. */
 const hasSignupPath = !!ENDPOINT || !!NL_ID || !!CONTACT;
-/* Hero "Listen here" button: single switch is SITE.spotifyUrl (must be an https://open.spotify.com/ link); empty keeps it hidden. */
+/* Hero brand icons. An icon whose URL is empty or invalid stays visible but dimmed and not a link; once its SITE value is set it becomes a normal link. */
 (function () {
-  const a = document.getElementById('hero-spotify'), u = safeSpotifyUrl(SITE.spotifyUrl);
-  if (u) { a.href = u; a.hidden = false; }
+  const items = [
+    ['soc-spotify', safeSpotifyUrl(SITE.spotifyUrl), 'spotify'],
+    ['soc-apple', safeAppleUrl(SITE.appleUrl), 'apple'],
+    ['soc-linkedin', safeLinkedInUrl(SITE.hostLinkedIn), 'linkedin']
+  ];
+  items.forEach(([id, url, name]) => {
+    if (!url) return;
+    const a = document.getElementById(id);
+    a.href = url; a.removeAttribute('aria-disabled'); a.removeAttribute('role');
+    a.addEventListener('click', () => track('platform_click', { platform: name }));
+  });
+  document.getElementById('soon-note').hidden = !!(items[0][1] && items[1][1]);
+  document.getElementById('hero-social').hidden = false;
 })();
 function setLink(id, url) {
   const el = document.getElementById(id), u = safeUrl(url);
@@ -211,27 +182,26 @@ function setLink(id, url) {
   return !!u;
 }
 const anyPlatform = [
-  setLink('pl-apple', SITE.appleUrl), setLink('pl-spotify', safeSpotifyUrl(SITE.spotifyUrl)),
+  setLink('pl-apple', safeAppleUrl(SITE.appleUrl)), setLink('pl-spotify', safeSpotifyUrl(SITE.spotifyUrl)),
   setLink('pl-youtube', SITE.youtubeUrl), setLink('pl-rss', SITE.rssUrl)
 ].some(Boolean);
 document.getElementById('platforms-col').hidden = !anyPlatform;
 document.querySelector('.sub-grid').classList.toggle('solo', !anyPlatform);
-setLink('host-linkedin', SITE.hostLinkedIn);
-setLink('footer-linkedin', SITE.hostLinkedIn);
+setLink('host-linkedin', safeLinkedInUrl(SITE.hostLinkedIn));
+setLink('footer-linkedin', safeLinkedInUrl(SITE.hostLinkedIn));
 if (SITE.hostSurname.trim()) document.getElementById('host-surname').textContent = ' ' + SITE.hostSurname.trim();
 if (SITE.hostAffiliation.trim()) {
   const af = document.getElementById('host-affil');
   af.textContent = SITE.hostAffiliation.trim(); af.hidden = false;
 }
 
-/* ===== Newsletter signup (hero + Subscribe): Apps Script endpoint, else Formspree, else a mailto: draft ===== */
+/* ===== Newsletter signup (Subscribe form): Apps Script endpoint, else Formspree, else a mailto: draft ===== */
 function wireNewsletter(form, msg) {
   const say = (cls, text) => { msg.className = 'form-msg' + (cls ? ' ' + cls : ''); msg.textContent = text; };
   if (!ENDPOINT && NL_ID) form.action = 'https://formspree.io/f/' + NL_ID;
   form.addEventListener('submit', async e => {
     e.preventDefault();
     if (!form.checkValidity()) { form.reportValidity(); return; }
-    if (form.id === 'hero-signup') track('cta_episode1_email');
     const b = form.querySelector('button[type=submit]');
     if (ENDPOINT || NL_ID) {
       b.disabled = true; say('', 'Sending…');
@@ -261,10 +231,8 @@ function wireNewsletter(form, msg) {
     }
   });
 }
-document.getElementById('hero-signup-block').hidden = !hasSignupPath;
 document.getElementById('newsletter-wrap').hidden = !hasSignupPath;
 document.querySelector('#newsletter-block [data-closed]').hidden = hasSignupPath;
-wireNewsletter(document.getElementById('hero-signup'), document.getElementById('hero-msg'));
 wireNewsletter(document.getElementById('newsletter-form'), document.getElementById('nl-msg'));
 
 /* ===== Guest form: always visible. Formspree if an ID is set, else a mailto: draft, else an honest note ===== */
@@ -324,7 +292,6 @@ wireNewsletter(document.getElementById('newsletter-form'), document.getElementBy
 document.getElementById('year').textContent = new Date().getFullYear();
 
 /* ===== Analytics events (no-ops if analytics is absent) ===== */
-document.getElementById('hero-spotify').addEventListener('click', () => track('platform_click', { platform: 'spotify' }));
 ['apple', 'spotify', 'youtube', 'rss'].forEach(p => {
   const el = document.getElementById('pl-' + p);
   if (el) el.addEventListener('click', () => track('platform_click', { platform: p }));

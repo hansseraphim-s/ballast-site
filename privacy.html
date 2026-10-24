@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Privacy — Ballast</title>
+  <meta name="description" content="How the Ballast site handles what you type into its forms, fonts and analytics." />
+  <meta name="theme-color" content="#EEF1F0" />
+  <link rel="canonical" href="https://www.ballastpod.com/privacy.html" />
+
+  <link rel="icon" href="favicon.ico" sizes="32x32" />
+  <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='10' fill='%230E1B2B'/%3E%3Ccircle cx='32' cy='32' r='16' fill='none' stroke='%23EEF1F0' stroke-width='4'/%3E%3Cpath d='M8 32h48' stroke='%23FF4F1F' stroke-width='4'/%3E%3C/svg%3E" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wdth,wght@12..96,75..100,500;12..96,75..100,800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --paper: #EEF1F0;
+      --ink: #0E1B2B;
+      --ink-2: #44546A;
+      --rule: #C3CCCA;
+      --signal-text: #B83310;
+      --font-display: 'Bricolage Grotesque', 'Arial Narrow', Impact, sans-serif;
+      --font-body: 'IBM Plex Sans', system-ui, sans-serif;
+      --font-mono: 'IBM Plex Mono', ui-monospace, Menlo, monospace;
+      color-scheme: light;
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+    body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--font-body); line-height: 1.55; }
+    main { width: min(720px, 100%); margin-inline: auto; padding: clamp(40px, 8vw, 96px) max(16px, env(safe-area-inset-right, 0px)) clamp(40px, 8vw, 96px) max(16px, env(safe-area-inset-left, 0px)); }
+    h1 { margin: 0 0 24px; font-family: var(--font-display); font-weight: 800; font-size: clamp(2.4rem, 8vw, 4rem); line-height: .95; letter-spacing: -0.02em; font-variation-settings: 'wdth' 80; }
+    ul { margin: 0; padding-left: 1.2em; display: grid; gap: 12px; font-size: 1.05rem; color: var(--ink-2); }
+    a { color: var(--ink); }
+    a:hover { color: var(--signal-text); }
+    :focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+    .back { display: inline-block; margin-top: 40px; font-family: var(--font-mono); font-size: .8rem; letter-spacing: .1em; text-transform: uppercase; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Privacy</h1>
+    <ul>
+      <li>The guest and newsletter forms send what you type to Google (Apps Script, Google Sheets and Gmail), which logs it, emails you a confirmation and notifies the host.</li>
+      <li>Fonts load from Google Fonts, so your browser contacts Google when the page loads.</li>
+      <li>Once enabled, the site uses Vercel Web Analytics, which Vercel documents as cookieless.</li>
+      <li>No ads and no tracking cookies.</li>
+    </ul>
+    <a class="back" href="./">&larr; Back to Ballast</a>
+  </main>
+</body>
+</html>
