@@ -5,6 +5,7 @@ const track = (name, props) => { try { if (typeof window.va === 'function') wind
 /* ===== SITE — owner-supplied values. Empty string = unset; any control that needs it hides itself. ===== */
 const SITE = {
   newsletterFormId: '',   /* Formspree form ID for the newsletter */
+  guestEndpoint: 'https://script.google.com/macros/s/AKfycbwjZgOUI__OnqYcuHMGS69wpD2RxHNMVzpxac0jrhfQ-DcMqnPXiMsfYa4iq_I-lNxh1A/exec', /* Google Apps Script web app: logs to a Sheet, emails owner and guest. Takes priority over guestFormId */
   guestFormId: '',        /* Formspree form ID for the guest form */
   contactEmail: '',       /* public contact address, used for mailto fallbacks */
   appleUrl: '',
@@ -196,6 +197,7 @@ if (!NEWS.items.length || newsStale) {
 /* ===== Config-driven links ===== */
 const safeUrl = u => /^https:\/\/[^\s"'<>]+$/i.test(u) ? u : '';
 const safeEmail = e => /^[^\s@<>"']+@[^\s@<>"']+\.[^\s@<>"']+$/.test(e) ? e : '';
+const safeScriptUrl = u => /^https:\/\/script\.google\.com\/macros\/s\/[A-Za-z0-9_-]+\/exec$/.test(u) ? u : '';
 const safeId = i => /^[A-Za-z0-9_-]+$/.test(i) ? i : '';
 const CONTACT = safeEmail(SITE.contactEmail);
 /* Email-signup entry points (hero button and the premise signup block) exist only when a signup path does. */
@@ -263,13 +265,26 @@ function wireForm(block, formId, subject, okText, eventName) {
 /* ===== Guest form: always visible. Formspree if an ID is set, else a mailto: draft, else an honest note ===== */
 (function wireGuestForm() {
   const form = document.getElementById('guest-form'), msg = document.getElementById('form-msg');
+  const endpoint = safeScriptUrl(SITE.guestEndpoint);
   const id = safeId(SITE.guestFormId);
-  if (id) form.action = 'https://formspree.io/f/' + id;
+  if (id && !endpoint) form.action = 'https://formspree.io/f/' + id;
   const say = (cls, text) => { msg.className = 'form-msg' + (cls ? ' ' + cls : ''); msg.textContent = text; };
   form.addEventListener('submit', async e => {
     e.preventDefault();
     if (!form.checkValidity()) { form.reportValidity(); return; }
-    if (id) {
+    if (endpoint) {
+      const b = form.querySelector('button[type=submit]'); b.disabled = true; say('', 'Sending…');
+      try {
+        /* No custom headers: stays a CORS simple request (no preflight). The script answers 302 then JSON. */
+        const r = await fetch(endpoint, { method: 'POST', body: new URLSearchParams(new FormData(form)) });
+        const data = await r.json();
+        if (!data || data.ok !== true) throw 0;
+        say('ok', "Thanks \u2014 you're in. Check your inbox for a confirmation."); form.reset(); track('guest_submit');
+      } catch {
+        say('err', 'Something went wrong sending that. Please try again in a minute.');
+      }
+      finally { b.disabled = false; }
+    } else if (id) {
       const b = form.querySelector('button[type=submit]'); b.disabled = true; say('', 'Sending…');
       try {
         const r = await fetch(form.action, { method: 'POST', body: new FormData(form), headers: { Accept: 'application/json' } });

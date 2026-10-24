@@ -18,7 +18,8 @@ Every field is an empty string until the owner fills it in. A control that needs
 | Field | What it unlocks |
 |-------|-----------------|
 | `newsletterFormId` | Formspree form ID. Shows the two newsletter signup forms (premise section and Subscribe section). Together with `contactEmail` it also decides whether the hero "Get episode 1 by email" button and the premise-section signup block appear (see below). Only letters, digits, `_` and `-` are accepted. |
-| `guestFormId` | Formspree form ID. The "Be a guest" form is always visible; this is what makes it submit to Formspree. If it is empty but `contactEmail` is set, submitting opens an email draft to `contactEmail` (subject "Ballast guest pitch") with the typed fields in the body. With neither, submitting shows "Guest requests aren't being collected online yet" and keeps what was typed. |
+| `guestEndpoint` | Google Apps Script web app URL, already set. Must look like `https://script.google.com/macros/s/<id>/exec` or it is ignored. The guest form POSTs to it (form-encoded, no custom headers) and expects JSON `{"ok":true}`. The script logs each submission to a Google Sheet and emails both the owner and the guest. It reads the fields `name, title, company, email, linkedin, _gotcha`, so keep those `name` attributes. Takes priority over `guestFormId` and `contactEmail`. |
+| `guestFormId` | Formspree form ID. Used only when `guestEndpoint` is empty. The "Be a guest" form is always visible; this is what makes it submit to Formspree. If it is empty but `contactEmail` is set, submitting opens an email draft to `contactEmail` (subject "Ballast guest pitch") with the typed fields in the body. With neither, submitting shows "Guest requests aren't being collected online yet" and keeps what was typed. |
 | `contactEmail` | Public address. If `newsletterFormId` is not set, the newsletter form is replaced by an "Email us" mailto button. It is also the fallback for the guest form (see `guestFormId`), and adds an "Email us directly" link to form error messages. |
 | `appleUrl`, `spotifyUrl`, `youtubeUrl`, `rssUrl` | Each shows its button in the Subscribe section. The whole "Wherever you listen" column appears when at least one is set. URLs must start with `https://`. |
 | `hostSurname` | Appended to "Hosted by Hans" in the About section. |
@@ -60,12 +61,13 @@ The site is hosted on Vercel.
 - The headers in `vercel.json` apply to every response. Because the CSP only allows `'self'` scripts, any new third-party script, form target or image host must be added to `vercel.json` first, or it will be blocked.
 - Analytics: `site.js` sends named events through Vercel Web Analytics (`cta_episode1_email`, `newsletter_submit`, `guest_submit`, `platform_click`). To turn it on: enable Web Analytics in the Vercel project, then set `SITE.analytics` to `true` in `site.js`. While it is `false` the insights script is not requested at all, so there is no 404; the events are queued and discarded.
 - Preview deployments: Vercel injects its `vercel.live` toolbar into preview deployments and the CSP blocks it, so CSP errors that mention `vercel.live` on previews are expected. They do not occur in production.
+- The CSP `connect-src` allows `https://formspree.io` (newsletter) and `https://script.google.com` plus `https://script.googleusercontent.com` (guest form: the Apps Script URL answers with a redirect to `script.googleusercontent.com`, and both origins must be allowed). If the Apps Script deployment changes, only `guestEndpoint` needs updating.
 - `form-action` in the CSP is `'self'` because the forms submit with `fetch` (allowed by `connect-src https://formspree.io`). If a native form POST is ever added, `form-action` must also allow `https://formspree.io`.
 
 ## Checklist: values only the owner can provide
 
 - [ ] Formspree form ID for the newsletter (`newsletterFormId`)
-- [ ] Formspree form ID for the guest form (`guestFormId`)
+- [ ] Keep the Google Apps Script deployment live and set to allow anyone to POST (`guestEndpoint`); optionally a Formspree ID for the guest form (`guestFormId`) as a fallback
 - [ ] Public contact email (`contactEmail`)
 - [ ] Apple Podcasts, Spotify, YouTube and RSS URLs
 - [ ] Host surname (`hostSurname`)
