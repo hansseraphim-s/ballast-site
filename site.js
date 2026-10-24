@@ -5,7 +5,7 @@ const track = (name, props) => { try { if (typeof window.va === 'function') wind
 /* ===== SITE — owner-supplied values. Empty string = unset; any control that needs it hides itself. ===== */
 const SITE = {
   newsletterFormId: '',   /* Formspree form ID for the newsletter */
-  guestEndpoint: 'https://script.google.com/macros/s/AKfycbwTXTXfGqwpt3dnEq5X_G4zZOl1TubB4nbVLvMt87gRnpD_CbMnxWv6JKGtSg7QQg7xNg/exec', /* Google Apps Script web app: logs to a Sheet, emails owner and guest. Takes priority over guestFormId */
+  guestEndpoint: 'https://script.google.com/macros/s/AKfycbzoU03VHEHcEkBHsz3vFTEDEjbir49gpV7tb5RDyKJmEOjAatPtcW-mndmFIvaHl3Yb/exec', /* Google Apps Script web app: logs to a Sheet, emails owner and guest. Takes priority over guestFormId */
   guestFormId: '',        /* Formspree form ID for the guest form */
   contactEmail: '',       /* public contact address, used for mailto fallbacks */
   appleUrl: '',
@@ -80,14 +80,8 @@ if (EPISODES.length === 0) {
   document.getElementById('episodes').hidden = false;
   document.querySelectorAll('li > a[href="#episodes"]').forEach(a => { a.closest('li').hidden = false; });
 }
-/* Hero CTA: pre-launch it points at the newsletter; once episodes exist it becomes Listen. */
-(function () {
-  const cta = document.getElementById('hero-cta');
-  if (!EPISODES.length) return;
-  cta.href = '#episodes';
-  cta.querySelector('span').textContent = 'Listen';
-  cta.querySelector('svg').outerHTML = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>';
-})();
+/* Hero "Listen" button: appears once episodes exist. */
+document.getElementById('hero-listen').hidden = EPISODES.length === 0;
 document.getElementById('episode-list').innerHTML = EPISODES.map((ep, i) => `
   <article class="ep reveal">
     <div class="no"><small>Episode</small>${String(ep.number).padStart(2,'0')}</div>
@@ -200,10 +194,16 @@ const safeEmail = e => /^[^\s@<>"']+@[^\s@<>"']+\.[^\s@<>"']+$/.test(e) ? e : ''
 const safeScriptUrl = u => /^https:\/\/script\.google\.com\/macros\/s\/[A-Za-z0-9_-]+\/exec$/.test(u) ? u : '';
 const safeId = i => /^[A-Za-z0-9_-]+$/.test(i) ? i : '';
 const CONTACT = safeEmail(SITE.contactEmail);
-/* Email-signup entry points (hero button and the premise signup block) exist only when a signup path does. */
-const hasSignupPath = !!safeId(SITE.newsletterFormId) || !!CONTACT;
-document.getElementById('signup').hidden = !hasSignupPath;
-document.getElementById('hero-cta').hidden = !(EPISODES.length || hasSignupPath);
+const safeSpotifyUrl = u => /^https:\/\/open\.spotify\.com\/[^\s"'<>]+$/i.test(u) ? u : '';
+const ENDPOINT = safeScriptUrl(SITE.guestEndpoint);
+const NL_ID = safeId(SITE.newsletterFormId);
+/* Newsletter signup UI (hero form and Subscribe form) shows only when a delivery path exists. */
+const hasSignupPath = !!ENDPOINT || !!NL_ID || !!CONTACT;
+/* Hero "Listen here" button: single switch is SITE.spotifyUrl (must be an https://open.spotify.com/ link); empty keeps it hidden. */
+(function () {
+  const a = document.getElementById('hero-spotify'), u = safeSpotifyUrl(SITE.spotifyUrl);
+  if (u) { a.href = u; a.hidden = false; }
+})();
 function setLink(id, url) {
   const el = document.getElementById(id), u = safeUrl(url);
   if (!el) return false;
@@ -211,7 +211,7 @@ function setLink(id, url) {
   return !!u;
 }
 const anyPlatform = [
-  setLink('pl-apple', SITE.appleUrl), setLink('pl-spotify', SITE.spotifyUrl),
+  setLink('pl-apple', SITE.appleUrl), setLink('pl-spotify', safeSpotifyUrl(SITE.spotifyUrl)),
   setLink('pl-youtube', SITE.youtubeUrl), setLink('pl-rss', SITE.rssUrl)
 ].some(Boolean);
 document.getElementById('platforms-col').hidden = !anyPlatform;
@@ -224,44 +224,49 @@ if (SITE.hostAffiliation.trim()) {
   af.textContent = SITE.hostAffiliation.trim(); af.hidden = false;
 }
 
-/* ===== Forms: Formspree if an ID is set, else mailto, else an honest "opens soon" note ===== */
-function wireForm(block, formId, subject, okText, eventName) {
-  const form = block.querySelector('form'), msg = block.querySelector('.form-msg');
-  const alt = block.querySelector('[data-alt]'), closed = block.querySelector('[data-closed]');
-  const id = safeId(formId);
-  if (id) {
-    form.action = 'https://formspree.io/f/' + id;
-    form.hidden = false;
-  } else if (CONTACT) {
-    alt.href = 'mailto:' + CONTACT + '?subject=' + encodeURIComponent(subject);
-    alt.hidden = false;
-    return;
-  } else {
-    closed.hidden = false;
-    return;
-  }
+/* ===== Newsletter signup (hero + Subscribe): Apps Script endpoint, else Formspree, else a mailto: draft ===== */
+function wireNewsletter(form, msg) {
+  const say = (cls, text) => { msg.className = 'form-msg' + (cls ? ' ' + cls : ''); msg.textContent = text; };
+  if (!ENDPOINT && NL_ID) form.action = 'https://formspree.io/f/' + NL_ID;
   form.addEventListener('submit', async e => {
     e.preventDefault();
     if (!form.checkValidity()) { form.reportValidity(); return; }
-    const b = form.querySelector('button[type=submit]'); b.disabled = true; msg.className = 'form-msg'; msg.textContent = 'Sending…';
-    try {
-      const r = await fetch(form.action, { method: 'POST', body: new FormData(form), headers: { Accept: 'application/json' } });
-      if (!r.ok) throw 0;
-      msg.className = 'form-msg ok'; msg.textContent = okText; form.reset(); track(eventName);
-    } catch {
-      msg.className = 'form-msg err'; msg.textContent = 'Something broke.';
-      if (CONTACT) {
-        msg.append(' ');
-        const a = document.createElement('a');
-        a.href = 'mailto:' + CONTACT; a.textContent = 'Email us directly instead.';
-        msg.append(a);
-      } else {
-        msg.append(' Please try again later.');
+    if (form.id === 'hero-signup') track('cta_episode1_email');
+    const b = form.querySelector('button[type=submit]');
+    if (ENDPOINT || NL_ID) {
+      b.disabled = true; say('', 'Sending…');
+      try {
+        let r, okText;
+        if (ENDPOINT) {
+          /* No custom headers: stays a CORS simple request (no preflight). The script answers 302 then JSON. */
+          r = await fetch(ENDPOINT, { method: 'POST', body: new URLSearchParams(new FormData(form)) });
+          const data = await r.json();
+          if (!data || data.ok !== true) throw 0;
+          okText = "You're on the list. Check your inbox for a confirmation.";
+        } else {
+          r = await fetch(form.action, { method: 'POST', body: new FormData(form), headers: { Accept: 'application/json' } });
+          if (!r.ok) throw 0;
+          okText = "You're on the list.";
+        }
+        say('ok', okText); form.reset(); track('newsletter_submit');
+      } catch {
+        say('err', 'Something went wrong \u2014 please try again in a minute.');
       }
+      finally { b.disabled = false; }
+    } else if (CONTACT) {
+      const a = document.createElement('a');
+      a.href = 'mailto:' + CONTACT + '?subject=' + encodeURIComponent('Ballast newsletter signup') + '&body=' + encodeURIComponent('Please add me to the Ballast email list.\r\nEmail: ' + form.elements.email.value.trim());
+      document.body.appendChild(a); a.click(); a.remove();
+      say('ok', 'Your email app should open with your details. Send it from there.');
     }
-    finally { b.disabled = false; }
   });
 }
+document.getElementById('hero-signup-block').hidden = !hasSignupPath;
+document.getElementById('newsletter-wrap').hidden = !hasSignupPath;
+document.querySelector('#newsletter-block [data-closed]').hidden = hasSignupPath;
+wireNewsletter(document.getElementById('hero-signup'), document.getElementById('hero-msg'));
+wireNewsletter(document.getElementById('newsletter-form'), document.getElementById('nl-msg'));
+
 /* ===== Guest form: always visible. Formspree if an ID is set, else a mailto: draft, else an honest note ===== */
 (function wireGuestForm() {
   const form = document.getElementById('guest-form'), msg = document.getElementById('form-msg');
@@ -316,13 +321,10 @@ function wireForm(block, formId, subject, okText, eventName) {
     }
   });
 })();
-document.querySelectorAll('[data-nl]').forEach(block => {
-  wireForm(block, SITE.newsletterFormId, 'Ballast newsletter signup', "You're on the list.", 'newsletter_submit');
-});
 document.getElementById('year').textContent = new Date().getFullYear();
 
 /* ===== Analytics events (no-ops if analytics is absent) ===== */
-document.getElementById('hero-cta').addEventListener('click', () => { if (document.getElementById('hero-cta').getAttribute('href') === '#signup') track('cta_episode1_email'); });
+document.getElementById('hero-spotify').addEventListener('click', () => track('platform_click', { platform: 'spotify' }));
 ['apple', 'spotify', 'youtube', 'rss'].forEach(p => {
   const el = document.getElementById('pl-' + p);
   if (el) el.addEventListener('click', () => track('platform_click', { platform: p }));

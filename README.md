@@ -17,18 +17,18 @@ Every field is an empty string until the owner fills it in. A control that needs
 
 | Field | What it unlocks |
 |-------|-----------------|
-| `newsletterFormId` | Formspree form ID. Shows the two newsletter signup forms (premise section and Subscribe section). Together with `contactEmail` it also decides whether the hero "Get episode 1 by email" button and the premise-section signup block appear (see below). Only letters, digits, `_` and `-` are accepted. |
-| `guestEndpoint` | Google Apps Script web app URL, already set. Must look like `https://script.google.com/macros/s/<id>/exec` or it is ignored. The guest form POSTs to it (form-encoded, no custom headers) and expects JSON `{"ok":true}`. The script logs each submission to a Google Sheet and emails both the owner and the guest. It reads the fields `name, title, company, email, linkedin, _gotcha`, so keep those `name` attributes. Takes priority over `guestFormId` and `contactEmail`. |
+| `newsletterFormId` | Formspree form ID, a fallback used for the newsletter only when `guestEndpoint` is empty. |
+| `guestEndpoint` | Google Apps Script web app URL, already set. Must look like `https://script.google.com/macros/s/<id>/exec` or it is ignored. The guest form and both newsletter forms (hero and Subscribe section) POST to it (form-encoded, no custom headers) and expect JSON `{"ok":true}`. The newsletter forms send an extra hidden `form=newsletter` field; the guest form sends no `form` field, so the script treats it as a guest request. The script logs each submission to a Google Sheet and emails the guest or subscriber (and, for guest requests, the owner). It reads the fields `name, title, company, email, linkedin, form, _gotcha`, so keep those `name` attributes. Takes priority over `newsletterFormId`, `guestFormId` and `contactEmail`. Newsletter priority is endpoint, then `newsletterFormId`, then a `contactEmail` mailto draft. |
 | `guestFormId` | Formspree form ID. Used only when `guestEndpoint` is empty. The "Be a guest" form is always visible; this is what makes it submit to Formspree. If it is empty but `contactEmail` is set, submitting opens an email draft to `contactEmail` (subject "Ballast guest pitch") with the typed fields in the body. With neither, submitting shows "Guest requests aren't being collected online yet" and keeps what was typed. |
-| `contactEmail` | Public address. If `newsletterFormId` is not set, the newsletter form is replaced by an "Email us" mailto button. It is also the fallback for the guest form (see `guestFormId`), and adds an "Email us directly" link to form error messages. |
-| `appleUrl`, `spotifyUrl`, `youtubeUrl`, `rssUrl` | Each shows its button in the Subscribe section. The whole "Wherever you listen" column appears when at least one is set. URLs must start with `https://`. |
+| `contactEmail` | Public address. Last-resort fallback: the guest and newsletter forms open an email draft to it when neither an endpoint nor a form ID is set. Also used for error-message email links in the Formspree guest path. |
+| `appleUrl`, `spotifyUrl`, `youtubeUrl`, `rssUrl` | Each shows its button in the Subscribe section. The whole "Wherever you listen" column appears when at least one is set. URLs must start with `https://`. `spotifyUrl` must be an `https://open.spotify.com/...` link; it also turns on the "Listen here" button in the hero. While it is empty that button stays hidden, so it never points at a dead link. |
 | `hostSurname` | Appended to "Hosted by Hans" in the About section. |
 | `hostLinkedIn` | Shows the LinkedIn button (About) and the footer LinkedIn link. Must start with `https://`. |
 | `hostAffiliation` | Shows a one-line disclosure under the bio, for example an employer or independence statement. |
 | `newsStaleDays` | Soundings hides itself, and its nav link, when `NEWS.weekOf` is older than this many days (default 14). |
 | `analytics` | `false` by default. Set to `true` only after Web Analytics is enabled in the Vercel project; `site.js` then loads `/_vercel/insights/script.js`. |
 
-If neither a form ID nor a contact email is set for the newsletter, the hero "Get episode 1 by email" button and the premise-section signup block are hidden (so "Be a guest" stands alone), and the Subscribe section shows the single "Sign-ups open soon." note. The guest form is never hidden; see `guestFormId` above for what it does without a form ID. Once `newsletterFormId` or `contactEmail` is set, the hero button and the premise signup appear.
+The newsletter signup (hero email field plus the Subscribe-section form) is visible whenever a delivery path exists: a valid `guestEndpoint`, a `newsletterFormId`, or a `contactEmail`. With none of them, the hero form is hidden (so "Be a guest" stands alone) and the Subscribe section shows the single "Sign-ups open soon." note. The guest form is never hidden; see `guestEndpoint` and `guestFormId` for what it does without them. Under each newsletter form a short line promises one email per episode plus the weekly picks and unsubscribe by replying; keep that true.
 
 ## Adding episodes
 
@@ -38,7 +38,7 @@ Add an object to the top of `EPISODES` in `site.js` (newest first). A commented 
 { number: 1, date: "2026-11-03", title: "...", guest: "...", role: "CIO", company: "...", duration: "50 min", takeaway: "...", url: "https://..." },
 ```
 
-While `EPISODES` is empty, the Episodes section, its nav link and the hero "Latest episode" strip are hidden. With one entry they appear, and the hero button changes from "Get episode 1 by email" to "Listen".
+While `EPISODES` is empty, the Episodes section, its nav link and the hero "Latest episode" strip are hidden. With one entry they appear, and a hero "Listen" button (jumps to Episodes) appears next to the signup form.
 
 ## Updating the news (Soundings)
 
@@ -59,14 +59,15 @@ The site is hosted on Vercel.
 - Pushing to `main` deploys to production automatically.
 - Pushing any other branch creates a preview deployment.
 - The headers in `vercel.json` apply to every response. Because the CSP only allows `'self'` scripts, any new third-party script, form target or image host must be added to `vercel.json` first, or it will be blocked.
-- Analytics: `site.js` sends named events through Vercel Web Analytics (`cta_episode1_email`, `newsletter_submit`, `guest_submit`, `platform_click`). To turn it on: enable Web Analytics in the Vercel project, then set `SITE.analytics` to `true` in `site.js`. While it is `false` the insights script is not requested at all, so there is no 404; the events are queued and discarded.
+- Analytics: `site.js` sends named events through Vercel Web Analytics (`cta_episode1_email` (valid submit of the hero email form), `newsletter_submit`, `guest_submit`, `platform_click`). To turn it on: enable Web Analytics in the Vercel project, then set `SITE.analytics` to `true` in `site.js`. While it is `false` the insights script is not requested at all, so there is no 404; the events are queued and discarded.
 - Preview deployments: Vercel injects its `vercel.live` toolbar into preview deployments and the CSP blocks it, so CSP errors that mention `vercel.live` on previews are expected. They do not occur in production.
-- The CSP `connect-src` allows `https://formspree.io` (newsletter) and `https://script.google.com` plus `https://script.googleusercontent.com` (guest form: the Apps Script URL answers with a redirect to `script.googleusercontent.com`, and both origins must be allowed). If the Apps Script deployment changes, only `guestEndpoint` needs updating.
+- The CSP `connect-src` allows `https://script.google.com` plus `https://script.googleusercontent.com` (the Apps Script URL answers with a redirect to `script.googleusercontent.com`, so both origins must be allowed) for the guest and newsletter forms, and `https://formspree.io` for the optional Formspree fallbacks. If the Apps Script deployment changes, only `guestEndpoint` needs updating. If you use a Formspree fallback instead of the endpoint, also update the Privacy note in `index.html`, which currently describes Google only.
 - `form-action` in the CSP is `'self'` because the forms submit with `fetch` (allowed by `connect-src https://formspree.io`). If a native form POST is ever added, `form-action` must also allow `https://formspree.io`.
 
 ## Checklist: values only the owner can provide
 
-- [ ] Formspree form ID for the newsletter (`newsletterFormId`)
+- [ ] Spotify show URL (`spotifyUrl`) to turn on the hero "Listen here" button
+- [ ] Optional: Formspree form ID for the newsletter (`newsletterFormId`) as a fallback
 - [ ] Keep the Google Apps Script deployment live and set to allow anyone to POST (`guestEndpoint`); optionally a Formspree ID for the guest form (`guestFormId`) as a fallback
 - [ ] Public contact email (`contactEmail`)
 - [ ] Apple Podcasts, Spotify, YouTube and RSS URLs
