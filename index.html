@@ -213,6 +213,8 @@
     /* ===== GUEST ===== */
     .guest { display: grid; grid-template-columns: 1fr 1.15fr; gap: clamp(32px, 6vw, 80px); align-items: start; }
     @media (max-width: 860px) { .guest { grid-template-columns: 1fr; } }
+    /* Side-by-side only: drop the form box so its top border meets the top of the h2 letters (eyebrow line box 1.55rem + h2 margin 10px + h2 line-box gap above the cap height, 0.128em of the h2 size). Stacked widths are unchanged. */
+    @media (min-width: 861px) { #guest-block { margin-top: calc(1.55rem + 10px + 0.128 * clamp(2.4rem, 6vw, 4.6rem)); } }
     .guest .pitch { font-family: var(--font-display); font-weight: 500; font-size: clamp(1.5rem, 3vw, 2.1rem); line-height: 1.15; margin-top: 18px; font-variation-settings: 'wdth' 90; }
     .guest .pitch em { font-style: normal; border-bottom: 3px solid var(--signal); }
     .guest ul { list-style: none; margin: 28px 0 0; padding: 0; display: grid; gap: 0; border-top: 1px solid var(--rule); }

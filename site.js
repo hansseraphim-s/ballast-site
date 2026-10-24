@@ -5,7 +5,7 @@ const track = (name, props) => { try { if (typeof window.va === 'function') wind
 /* ===== SITE — owner-supplied values. Empty string = unset; any control that needs it hides itself. ===== */
 const SITE = {
   newsletterFormId: '',   /* Formspree form ID for the newsletter */
-  guestEndpoint: 'https://script.google.com/macros/s/AKfycbwjZgOUI__OnqYcuHMGS69wpD2RxHNMVzpxac0jrhfQ-DcMqnPXiMsfYa4iq_I-lNxh1A/exec', /* Google Apps Script web app: logs to a Sheet, emails owner and guest. Takes priority over guestFormId */
+  guestEndpoint: 'https://script.google.com/macros/s/AKfycbwTXTXfGqwpt3dnEq5X_G4zZOl1TubB4nbVLvMt87gRnpD_CbMnxWv6JKGtSg7QQg7xNg/exec', /* Google Apps Script web app: logs to a Sheet, emails owner and guest. Takes priority over guestFormId */
   guestFormId: '',        /* Formspree form ID for the guest form */
   contactEmail: '',       /* public contact address, used for mailto fallbacks */
   appleUrl: '',
