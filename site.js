@@ -8,9 +8,7 @@ const SITE = {
   guestEndpoint: 'https://script.google.com/macros/s/AKfycbzoU03VHEHcEkBHsz3vFTEDEjbir49gpV7tb5RDyKJmEOjAatPtcW-mndmFIvaHl3Yb/exec', /* Google Apps Script web app: logs to a Sheet, emails owner and guest. Takes priority over guestFormId */
   guestFormId: '',        /* Formspree form ID for the guest form */
   contactEmail: '',       /* public contact address, used for mailto fallbacks */
-  appleUrl: '',
   spotifyUrl: '',
-  youtubeUrl: '',
   rssUrl: '',
   hostSurname: '',
   hostLinkedIn: 'https://www.linkedin.com/in/hans-seraphim/',
@@ -152,9 +150,7 @@ const safeEmail = e => /^[^\s@<>"']+@[^\s@<>"']+\.[^\s@<>"']+$/.test(e) ? e : ''
 const safeScriptUrl = u => /^https:\/\/script\.google\.com\/macros\/s\/[A-Za-z0-9_-]+\/exec$/.test(u) ? u : '';
 const safeId = i => /^[A-Za-z0-9_-]+$/.test(i) ? i : '';
 const CONTACT = safeEmail(SITE.contactEmail);
-const safeAppleUrl = u => /^https:\/\/(podcasts|itunes)\.apple\.com\/[^\s"'<>]+$/i.test(u) ? u : '';
 const safeLinkedInUrl = u => /^https:\/\/www\.linkedin\.com\/in\/[^\s"'<>]+$/i.test(u) ? u : '';
-const safeYoutubeUrl = u => /^https:\/\/(www\.)?youtube\.com\/[^\s"'<>]+$/i.test(u) ? u : '';
 const safeSpotifyUrl = u => /^https:\/\/open\.spotify\.com\/[^\s"'<>]+$/i.test(u) ? u : '';
 const ENDPOINT = safeScriptUrl(SITE.guestEndpoint);
 const NL_ID = safeId(SITE.newsletterFormId);
@@ -166,18 +162,13 @@ function setLink(id, url) {
   if (u) { el.href = u; el.hidden = false; }
   return !!u;
 }
-/* "Wherever you listen": the three buttons always show. One with no valid URL stays dimmed and unlinked until its SITE value is set. RSS shows only when rssUrl is set. */
-const platformUrls = {
-  'pl-apple': safeAppleUrl(SITE.appleUrl),
-  'pl-spotify': safeSpotifyUrl(SITE.spotifyUrl),
-  'pl-youtube': safeYoutubeUrl(SITE.youtubeUrl)
-};
-Object.entries(platformUrls).forEach(([id, url]) => {
-  if (!url) return;
-  const a = document.getElementById(id);
-  a.href = url; a.removeAttribute('aria-disabled'); a.removeAttribute('role');
-});
-document.getElementById('soon-note').hidden = Object.values(platformUrls).every(Boolean);
+/* "Wherever you listen": the Spotify button always shows. With no valid spotifyUrl it stays dimmed and unlinked (and "Coming soon" shows) until the URL is set. RSS shows only when rssUrl is set. */
+const spotifyLink = safeSpotifyUrl(SITE.spotifyUrl);
+if (spotifyLink) {
+  const a = document.getElementById('pl-spotify');
+  a.href = spotifyLink; a.removeAttribute('aria-disabled'); a.removeAttribute('role');
+}
+document.getElementById('soon-note').hidden = !!spotifyLink;
 setLink('pl-rss', SITE.rssUrl);
 /* Hero "Listen": smooth-scroll to the Subscribe section (instant under reduced motion) and move focus to its heading. */
 document.getElementById('hero-listen').addEventListener('click', e => {
@@ -293,7 +284,7 @@ wireNewsletter(document.getElementById('newsletter-form'), document.getElementBy
 document.getElementById('year').textContent = new Date().getFullYear();
 
 /* ===== Analytics events (no-ops if analytics is absent) ===== */
-['apple', 'spotify', 'youtube', 'rss'].forEach(p => {
+['spotify', 'rss'].forEach(p => {
   const el = document.getElementById('pl-' + p);
   if (el) el.addEventListener('click', () => track('platform_click', { platform: p }));
 });

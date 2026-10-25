@@ -21,7 +21,7 @@ Every field is an empty string until the owner fills it in. A control that needs
 | `guestEndpoint` | Google Apps Script web app URL, already set. Must look like `https://script.google.com/macros/s/<id>/exec` or it is ignored. The guest form and the newsletter form (Subscribe section) POST to it (form-encoded, no custom headers) and expect JSON `{"ok":true}`. The newsletter forms send an extra hidden `form=newsletter` field; the guest form sends no `form` field, so the script treats it as a guest request. The script logs each submission to a Google Sheet and emails the guest or subscriber (and, for guest requests, the owner). It reads the fields `name, title, company, email, linkedin, form, _gotcha`, so keep those `name` attributes. Takes priority over `newsletterFormId`, `guestFormId` and `contactEmail`. Newsletter priority is endpoint, then `newsletterFormId`, then a `contactEmail` mailto draft. |
 | `guestFormId` | Formspree form ID. Used only when `guestEndpoint` is empty. The "Be a guest" form is always visible; this is what makes it submit to Formspree. If it is empty but `contactEmail` is set, submitting opens an email draft to `contactEmail` (subject "Ballast guest pitch") with the typed fields in the body. With neither, submitting shows "Guest requests aren't being collected online yet" and keeps what was typed. |
 | `contactEmail` | Public address. Last-resort fallback: the guest and newsletter forms open an email draft to it when neither an endpoint nor a form ID is set. Also used for error-message email links in the Formspree guest path. |
-| `appleUrl`, `spotifyUrl`, `youtubeUrl`, `rssUrl` | The "Wherever you listen" buttons in the Subscribe section (the hero "Listen" button scrolls there). Apple Podcasts, Spotify and YouTube always show; a button with no valid URL stays dimmed and unlinked and a "Coming soon" line shows under the row until all three are set. RSS appears only when `rssUrl` is set. URL checks: `spotifyUrl` must be `https://open.spotify.com/...`, `appleUrl` `https://podcasts.apple.com/...` (or `itunes.apple.com`), `youtubeUrl` `https://www.youtube.com/...` or `https://youtube.com/...`, `rssUrl` any `https://` URL. |
+| `spotifyUrl`, `rssUrl` | The "Wherever you listen" buttons in the Subscribe section (the hero "Listen" button scrolls there). The Spotify button always shows; with no valid `spotifyUrl` it stays dimmed and unlinked, and a "Coming soon" line shows under it until the URL is set. `spotifyUrl` must be `https://open.spotify.com/...`. The RSS button appears only when `rssUrl` is set (any `https://` URL). |
 | `hostSurname` | Appended to "Hosted by Hans" in the About section. |
 | `hostLinkedIn` | LinkedIn profile URL, already set. Must start with `https://www.linkedin.com/in/`. Drives the About button and the footer link. |
 | `hostAffiliation` | Shows a one-line disclosure under the bio, for example an employer or independence statement. |
@@ -59,14 +59,14 @@ The site is hosted on Vercel.
 - Pushing to `main` deploys to production automatically.
 - Pushing any other branch creates a preview deployment.
 - The headers in `vercel.json` apply to every response. Because the CSP only allows `'self'` scripts, any new third-party script, form target or image host must be added to `vercel.json` first, or it will be blocked.
-- Analytics: `site.js` sends named events through Vercel Web Analytics (`newsletter_submit`, `guest_submit`, `platform_click`, with a `platform` property of spotify, apple, linkedin, youtube or rss). To turn it on: enable Web Analytics in the Vercel project, then set `SITE.analytics` to `true` in `site.js`. While it is `false` the insights script is not requested at all, so there is no 404; the events are queued and discarded.
+- Analytics: `site.js` sends named events through Vercel Web Analytics (`newsletter_submit`, `guest_submit`, `platform_click`, with a `platform` property of spotify or rss). To turn it on: enable Web Analytics in the Vercel project, then set `SITE.analytics` to `true` in `site.js`. While it is `false` the insights script is not requested at all, so there is no 404; the events are queued and discarded.
 - Preview deployments: Vercel injects its `vercel.live` toolbar into preview deployments and the CSP blocks it, so CSP errors that mention `vercel.live` on previews are expected. They do not occur in production.
 - The CSP `connect-src` allows `https://script.google.com` plus `https://script.googleusercontent.com` (the Apps Script URL answers with a redirect to `script.googleusercontent.com`, so both origins must be allowed) for the guest and newsletter forms, and `https://formspree.io` for the optional Formspree fallbacks. If the Apps Script deployment changes, only `guestEndpoint` needs updating. If you use a Formspree fallback instead of the endpoint, also update the Privacy note in `index.html`, which currently describes Google only.
 - `form-action` in the CSP is `'self'` because the forms submit with `fetch` (allowed by `connect-src https://formspree.io`). If a native form POST is ever added, `form-action` must also allow `https://formspree.io`.
 
 ## Checklist: values only the owner can provide
 
-- [ ] Spotify show URL (`spotifyUrl`), Apple Podcasts URL (`appleUrl`) and YouTube channel URL (`youtubeUrl`) to switch the "Wherever you listen" buttons on
+- [ ] Spotify show URL (`spotifyUrl`) to switch the "Wherever you listen" button on
 - [ ] Optional: Formspree form ID for the newsletter (`newsletterFormId`) as a fallback
 - [ ] Keep the Google Apps Script deployment live and set to allow anyone to POST (`guestEndpoint`); optionally a Formspree ID for the guest form (`guestFormId`) as a fallback
 - [ ] Public contact email (`contactEmail`)
@@ -81,11 +81,9 @@ The site is hosted on Vercel.
 
 ## Brand icon sources
 
-The platform logos on the "Wherever you listen" buttons are brand marks and must be used unmodified. Follow each brand's guidelines.
+The Spotify logo on the "Wherever you listen" button is a brand mark and must be used unmodified. Follow the brand guidelines.
 
 | Icon | File | Source |
 |------|------|--------|
 | Spotify | `spotify.svg` | Official icon (`Primary_Logo_Green_RGB.svg`) from the "Download Icon" zip on https://developer.spotify.com/documentation/design (https://developer.spotify.com/images/guidelines/design/2024-spotify-logo-icon.zip). Spotify allows the green icon on black or white backgrounds (it sits on the navy section here), asks for a clear space of half the icon height, and a minimum of 21px. |
-| Apple Podcasts | inline SVG in `index.html` (`#pl-apple`) | NOT official artwork. Apple only offers its icon as a layered PSD behind a Box share page linked from https://marketing.services.apple/apple-podcasts-identity-guidelines (https://apple.box.com/s/be82lvt43yrha9c55nfxmm10l9bnp6am). Download it there, export a PNG or SVG, save it as `apple-podcasts.png` (or `.svg`) in the repo root, and replace the inline SVG in `#pl-apple` with an `<img>`. Apple also says to use its "Listen on Apple Podcasts" badge in marketing. |
-| YouTube | inline SVG in `index.html` (`#pl-youtube`) | NOT official artwork. YouTube's brand resources at https://brand.youtube/ (also reached from https://www.youtube.com/howyoutubeworks/resources/brand-resources/) are a JavaScript-rendered site with no direct download links, so I could not fetch the official icon. Download the YouTube icon there, save it as `youtube.svg` (or `.png`) in the repo root, and replace the inline SVG in `#pl-youtube`. |
 | LinkedIn | `linkedin.png` | Unused since the hero logo row was removed (About and footer use a plain glyph). Official "In" bug from https://brand.linkedin.com/downloads; safe to delete. |
