@@ -21,9 +21,9 @@ Every field is an empty string until the owner fills it in. A control that needs
 | `guestEndpoint` | Google Apps Script web app URL, already set. Must look like `https://script.google.com/macros/s/<id>/exec` or it is ignored. The guest form and the newsletter form (Subscribe section) POST to it (form-encoded, no custom headers) and expect JSON `{"ok":true}`. The newsletter forms send an extra hidden `form=newsletter` field; the guest form sends no `form` field, so the script treats it as a guest request. The script logs each submission to a Google Sheet and emails the guest or subscriber (and, for guest requests, the owner). It reads the fields `name, title, company, email, linkedin, form, _gotcha`, so keep those `name` attributes. Takes priority over `newsletterFormId`, `guestFormId` and `contactEmail`. Newsletter priority is endpoint, then `newsletterFormId`, then a `contactEmail` mailto draft. |
 | `guestFormId` | Formspree form ID. Used only when `guestEndpoint` is empty. The "Be a guest" form is always visible; this is what makes it submit to Formspree. If it is empty but `contactEmail` is set, submitting opens an email draft to `contactEmail` (subject "Ballast guest pitch") with the typed fields in the body. With neither, submitting shows "Guest requests aren't being collected online yet" and keeps what was typed. |
 | `contactEmail` | Public address. Last-resort fallback: the guest and newsletter forms open an email draft to it when neither an endpoint nor a form ID is set. Also used for error-message email links in the Formspree guest path. |
-| `appleUrl`, `spotifyUrl`, `youtubeUrl`, `rssUrl` | Each shows its button in the Subscribe section; the "Wherever you listen" column appears when at least one is set. `spotifyUrl` must be an `https://open.spotify.com/...` link and `appleUrl` an `https://podcasts.apple.com/...` (or `itunes.apple.com`) link. The same two values drive the hero brand icons: with no valid URL the icon still shows, dimmed and not a link, and a "Coming soon" caption sits under the row while either is missing; once set, the icon becomes a normal link automatically. |
+| `appleUrl`, `spotifyUrl`, `youtubeUrl`, `rssUrl` | The "Wherever you listen" buttons in the Subscribe section (the hero "Listen" button scrolls there). Apple Podcasts, Spotify and YouTube always show; a button with no valid URL stays dimmed and unlinked and a "Coming soon" line shows under the row until all three are set. RSS appears only when `rssUrl` is set. URL checks: `spotifyUrl` must be `https://open.spotify.com/...`, `appleUrl` `https://podcasts.apple.com/...` (or `itunes.apple.com`), `youtubeUrl` `https://www.youtube.com/...` or `https://youtube.com/...`, `rssUrl` any `https://` URL. |
 | `hostSurname` | Appended to "Hosted by Hans" in the About section. |
-| `hostLinkedIn` | LinkedIn profile URL, already set. Must start with `https://www.linkedin.com/in/`. Drives the hero LinkedIn icon, the About button and the footer link. |
+| `hostLinkedIn` | LinkedIn profile URL, already set. Must start with `https://www.linkedin.com/in/`. Drives the About button and the footer link. |
 | `hostAffiliation` | Shows a one-line disclosure under the bio, for example an employer or independence statement. |
 | `newsStaleDays` | Soundings hides itself, and its nav link, when `NEWS.weekOf` is older than this many days (default 14). |
 | `analytics` | `false` by default. Set to `true` only after Web Analytics is enabled in the Vercel project; `site.js` then loads `/_vercel/insights/script.js`. |
@@ -66,7 +66,7 @@ The site is hosted on Vercel.
 
 ## Checklist: values only the owner can provide
 
-- [ ] Spotify show URL (`spotifyUrl`) and Apple Podcasts URL (`appleUrl`) to light up the hero icons
+- [ ] Spotify show URL (`spotifyUrl`), Apple Podcasts URL (`appleUrl`) and YouTube channel URL (`youtubeUrl`) to switch the "Wherever you listen" buttons on
 - [ ] Optional: Formspree form ID for the newsletter (`newsletterFormId`) as a fallback
 - [ ] Keep the Google Apps Script deployment live and set to allow anyone to POST (`guestEndpoint`); optionally a Formspree ID for the guest form (`guestFormId`) as a fallback
 - [ ] Public contact email (`contactEmail`)
@@ -81,11 +81,11 @@ The site is hosted on Vercel.
 
 ## Brand icon sources
 
-The hero icons are brand marks and must be used unmodified. Follow each brand's guidelines.
+The platform logos on the "Wherever you listen" buttons are brand marks and must be used unmodified. Follow each brand's guidelines.
 
 | Icon | File | Source |
 |------|------|--------|
-| Spotify | `spotify.svg` | Official icon (`Primary_Logo_Green_RGB.svg`) from the "Download Icon" zip on https://developer.spotify.com/documentation/design (https://developer.spotify.com/images/guidelines/design/2024-spotify-logo-icon.zip). Spotify asks for the green icon only on black or white backgrounds, a clear space of half the icon height, and at least 21px; on other light backgrounds use the black icon from the same zip. |
-| LinkedIn | `linkedin.png` | Official "In" bug (`LI-In-Bug.png`) from the [in] Logo download on https://brand.linkedin.com/downloads (https://content.linkedin.com/content/dam/me/business/en-us/amp/xbu/linkedin-revised-brand-guidelines/logos/in-logo.zip). The page says downloading the logos means agreeing to the LinkedIn Brand and User Agreements. |
-| Apple Podcasts | inline SVG in `index.html` | NOT official artwork. Apple only offers its icon as a layered PSD behind a Box share page linked from https://marketing.services.apple/apple-podcasts-identity-guidelines (https://apple.box.com/s/be82lvt43yrha9c55nfxmm10l9bnp6am). Download it there, export an SVG or PNG, save it as `apple-podcasts.png` (or `.svg`) in the repo root, next to `spotify.svg` and `linkedin.png`, and replace the inline SVG in `#soc-apple`. Apple also says to use its "Listen on Apple Podcasts" badge in marketing, and the icon only alongside icons of similar shape and size. |
-
+| Spotify | `spotify.svg` | Official icon (`Primary_Logo_Green_RGB.svg`) from the "Download Icon" zip on https://developer.spotify.com/documentation/design (https://developer.spotify.com/images/guidelines/design/2024-spotify-logo-icon.zip). Spotify allows the green icon on black or white backgrounds (it sits on the navy section here), asks for a clear space of half the icon height, and a minimum of 21px. |
+| Apple Podcasts | inline SVG in `index.html` (`#pl-apple`) | NOT official artwork. Apple only offers its icon as a layered PSD behind a Box share page linked from https://marketing.services.apple/apple-podcasts-identity-guidelines (https://apple.box.com/s/be82lvt43yrha9c55nfxmm10l9bnp6am). Download it there, export a PNG or SVG, save it as `apple-podcasts.png` (or `.svg`) in the repo root, and replace the inline SVG in `#pl-apple` with an `<img>`. Apple also says to use its "Listen on Apple Podcasts" badge in marketing. |
+| YouTube | inline SVG in `index.html` (`#pl-youtube`) | NOT official artwork. YouTube's brand resources at https://brand.youtube/ (also reached from https://www.youtube.com/howyoutubeworks/resources/brand-resources/) are a JavaScript-rendered site with no direct download links, so I could not fetch the official icon. Download the YouTube icon there, save it as `youtube.svg` (or `.png`) in the repo root, and replace the inline SVG in `#pl-youtube`. |
+| LinkedIn | `linkedin.png` | Unused since the hero logo row was removed (About and footer use a plain glyph). Official "In" bug from https://brand.linkedin.com/downloads; safe to delete. |

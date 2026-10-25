@@ -154,39 +154,40 @@ const safeId = i => /^[A-Za-z0-9_-]+$/.test(i) ? i : '';
 const CONTACT = safeEmail(SITE.contactEmail);
 const safeAppleUrl = u => /^https:\/\/(podcasts|itunes)\.apple\.com\/[^\s"'<>]+$/i.test(u) ? u : '';
 const safeLinkedInUrl = u => /^https:\/\/www\.linkedin\.com\/in\/[^\s"'<>]+$/i.test(u) ? u : '';
+const safeYoutubeUrl = u => /^https:\/\/(www\.)?youtube\.com\/[^\s"'<>]+$/i.test(u) ? u : '';
 const safeSpotifyUrl = u => /^https:\/\/open\.spotify\.com\/[^\s"'<>]+$/i.test(u) ? u : '';
 const ENDPOINT = safeScriptUrl(SITE.guestEndpoint);
 const NL_ID = safeId(SITE.newsletterFormId);
 /* Newsletter signup UI (Subscribe form) shows only when a delivery path exists. */
 const hasSignupPath = !!ENDPOINT || !!NL_ID || !!CONTACT;
-/* Hero brand icons. An icon whose URL is empty or invalid stays visible but dimmed and not a link; once its SITE value is set it becomes a normal link. */
-(function () {
-  const items = [
-    ['soc-spotify', safeSpotifyUrl(SITE.spotifyUrl), 'spotify'],
-    ['soc-apple', safeAppleUrl(SITE.appleUrl), 'apple'],
-    ['soc-linkedin', safeLinkedInUrl(SITE.hostLinkedIn), 'linkedin']
-  ];
-  items.forEach(([id, url, name]) => {
-    if (!url) return;
-    const a = document.getElementById(id);
-    a.href = url; a.removeAttribute('aria-disabled'); a.removeAttribute('role');
-    a.addEventListener('click', () => track('platform_click', { platform: name }));
-  });
-  document.getElementById('soon-note').hidden = !!(items[0][1] && items[1][1]);
-  document.getElementById('hero-social').hidden = false;
-})();
 function setLink(id, url) {
   const el = document.getElementById(id), u = safeUrl(url);
   if (!el) return false;
   if (u) { el.href = u; el.hidden = false; }
   return !!u;
 }
-const anyPlatform = [
-  setLink('pl-apple', safeAppleUrl(SITE.appleUrl)), setLink('pl-spotify', safeSpotifyUrl(SITE.spotifyUrl)),
-  setLink('pl-youtube', SITE.youtubeUrl), setLink('pl-rss', SITE.rssUrl)
-].some(Boolean);
-document.getElementById('platforms-col').hidden = !anyPlatform;
-document.querySelector('.sub-grid').classList.toggle('solo', !anyPlatform);
+/* "Wherever you listen": the three buttons always show. One with no valid URL stays dimmed and unlinked until its SITE value is set. RSS shows only when rssUrl is set. */
+const platformUrls = {
+  'pl-apple': safeAppleUrl(SITE.appleUrl),
+  'pl-spotify': safeSpotifyUrl(SITE.spotifyUrl),
+  'pl-youtube': safeYoutubeUrl(SITE.youtubeUrl)
+};
+Object.entries(platformUrls).forEach(([id, url]) => {
+  if (!url) return;
+  const a = document.getElementById(id);
+  a.href = url; a.removeAttribute('aria-disabled'); a.removeAttribute('role');
+});
+document.getElementById('soon-note').hidden = Object.values(platformUrls).every(Boolean);
+setLink('pl-rss', SITE.rssUrl);
+/* Hero "Listen": smooth-scroll to the Subscribe section (instant under reduced motion) and move focus to its heading. */
+document.getElementById('hero-listen').addEventListener('click', e => {
+  e.preventDefault();
+  const heading = document.getElementById('subscribe-title');
+  document.getElementById('subscribe').scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' });
+  heading.setAttribute('tabindex', '-1');
+  heading.focus({ preventScroll: true });
+  history.replaceState(null, '', '#subscribe');
+});
 setLink('host-linkedin', safeLinkedInUrl(SITE.hostLinkedIn));
 setLink('footer-linkedin', safeLinkedInUrl(SITE.hostLinkedIn));
 if (SITE.hostSurname.trim()) document.getElementById('host-surname').textContent = ' ' + SITE.hostSurname.trim();
