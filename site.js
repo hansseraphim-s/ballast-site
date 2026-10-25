@@ -32,8 +32,7 @@ const EPISODES = [
 /* ===== NEWS — refresh weekly. Set week, swap the items (4-5 max, newest first).
    Each item: date shown as given, source name, url, and a one-line "why" for a CIO reader. ===== */
 const NEWS = {
-  week: "Week of October 19, 2026",
-  weekOf: '2026-10-19',  /* ISO date of the week above; drives the staleness guard */
+  weekOf: '2026-10-19',  /* ISO date of the week these items cover; drives the staleness guard (not shown on the page) */
   items: [
     {
       date: "Oct 22", source: "TechCrunch",
@@ -103,7 +102,6 @@ if (!NEWS.items.length || newsStale) {
 } else {
   document.getElementById('news').hidden = false;
   document.querySelectorAll('li > a[href="#news"]').forEach(a => { a.closest('li').hidden = false; });
-  document.getElementById('news-week').textContent = NEWS.week + '.';
   document.getElementById('news-list').innerHTML = NEWS.items.map(n => `
     <article class="nitem reveal">
       <div class="nd"><span><b>${esc(n.date)}</b></span><span>${esc(n.source)}</span></div>

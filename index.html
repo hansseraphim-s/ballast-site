@@ -268,7 +268,6 @@
 
 
     /* News / Soundings */
-    .news-sub { color: var(--ink-2); margin-top: 14px; max-width: 60ch; font-size: 1.05rem; }
     .nitem { display: grid; grid-template-columns: 120px 1fr; gap: 8px 28px; padding: 24px 0; border-bottom: 1px solid var(--ink); }
     .nitem .nd { font-family: var(--font-mono); font-size: .72rem; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-2); padding-top: 5px; display: grid; gap: 6px; align-content: start; }
     .nitem .nd b { color: var(--signal-text); font-weight: 500; }
@@ -279,7 +278,6 @@
     .nitem .why { color: var(--ink-2); max-width: 66ch; margin-top: 8px; font-size: .98rem; }
     @media (max-width: 640px) { .nitem { grid-template-columns: 1fr; } }
     /* Dark Soundings section: same ink ground as Subscribe. The page overlay sits below .page, so the section paints over it. */
-    #news .news-sub { color: rgba(238,241,240,.78); }
     #news .log { border-top-color: rgba(238,241,240,.22); }
     #news .nitem { border-bottom-color: rgba(238,241,240,.22); }
     #news .nitem .nd { color: rgba(238,241,240,.7); }
@@ -414,7 +412,6 @@
       <div class="wrap">
         <div class="sec-head reveal">
           <h2 id="news-title">This week in enterprise AI.</h2>
-          <p class="news-sub">Hand-picked, weekly: what moved for the office of the CIO, and why it matters. <span id="news-week"></span></p>
         </div>
         <div class="log" id="news-list"><!-- rendered from NEWS --></div>
       </div>
@@ -445,9 +442,8 @@
           <h2 id="guest-title">Be a guest.</h2>
           <p class="pitch">We talk with CIOs and tech leaders who are <em>making</em> real AI decisions.</p>
           <ul>
-            <li><span>01</span><span>45–60 minutes, remote, recorded once. No prep deck required.</span></li>
-            <li><span>02</span><span>You review before anything ships. Off the record stays off the record.</span></li>
-            <li><span>03</span><span>Operators only. If your title has "evangelist" in it, we'll pass.</span></li>
+            <li><span>01</span><span>45–60 minutes, remote.</span></li>
+            <li><span>02</span><span>You review before anything ships.</span></li>
           </ul>
         </div>
         <div class="reveal" id="guest-block">

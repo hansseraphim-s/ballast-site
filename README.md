@@ -44,8 +44,7 @@ While `EPISODES` is empty, the Episodes section, its nav link and the hero "Late
 
 Edit `NEWS` in `site.js` each week:
 
-- `week`: the display label, for example `"Week of October 19, 2026"`.
-- `weekOf`: the same week as an ISO date, `"2026-10-19"`. This drives the staleness guard.
+- `weekOf`: the week the items cover, as an ISO date, `"2026-10-19"`. It is not shown on the page; it only drives the staleness guard.
 - `items`: 4 or 5 items, newest first. Each has `date`, `source`, `title`, `url` and `why` (one line for a CIO reader).
 
 Staleness guard: if `weekOf` is older than `SITE.newsStaleDays`, or `items` is empty, the whole Soundings section and its nav link are hidden. Forgetting to refresh therefore removes the section instead of showing old news. Update `weekOf` whenever you refresh.
